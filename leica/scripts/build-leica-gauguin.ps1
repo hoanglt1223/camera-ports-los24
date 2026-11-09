@@ -14,7 +14,7 @@ $work = Join-Path $root 'work\build'
 $outDir = Join-Path $root 'out'
 $keys = Join-Path $root 'keys'
 $bt = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\build-tools" | Sort-Object Name | Select-Object -Last 1 -ExpandProperty FullName
-$dexes = 11, 15, 17, 19, 22, 23, 24, 25, 26, 29, 30, 31
+$dexes = 2, 4, 11, 15, 17, 19, 22, 23, 24, 25, 26, 29, 30, 31
 
 function Run($exe, [string[]]$a) { & $exe @a; if ($LASTEXITCODE) { throw "$exe failed ($LASTEXITCODE)" } }
 
@@ -34,7 +34,8 @@ foreach ($i in $dexes) { Run java @('-jar', "$bin\baksmali.jar", 'd', "$work\in\
 Run python @('-I', "$PSScriptRoot\patch_port.py", "$work\smali", "$work\in\assets\device-profiles.json", "$work\device-profiles.json", "$work\in\resources.arsc", "$work\resources.arsc")
 if ($Slim) { Run python @('-I', "$PSScriptRoot\slim_patch.py", "$work\smali") }
 
-# Fixes: lens-switch lock (MethodCache), Leica Styles entry after relaunch (classes3), film LUT styles.
+# Fixes: lens-switch lock (MethodCache), Leica Styles entry after relaunch (classes3), film LUT styles,
+# drained render notification, OneTrack/CloudConfig telemetry off (classes2, classes3, classes4).
 $android = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\platforms\*\android.jar" | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
 $javaSrc = Get-ChildItem -Recurse "$PSScriptRoot\java\src" -Filter *.java | ForEach-Object FullName
 Run javac (@('--release', '8', '-nowarn', '-cp', "$android;$PSScriptRoot\java\stub", '-d', "$work\java-classes") + $javaSrc)

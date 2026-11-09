@@ -8,6 +8,9 @@
    setItems() on a cold start, so after Back/Home and relaunch the entry was missing.
 3. Film-look LUT styles (FilmLut, ids 771..778) appended to the donor model gallery
    (ModelUi / ModelPort / CloudGalleryAdapter) and accepted by the Leica Styles editor.
+4. Background rendering: the final "rendering done" notification no longer stays forever.
+5. Telemetry off: OneTrack kill switch on (classes2), camera CloudConfig network fetch stubbed (classes3),
+   watermark network-time probe (baidu/google/yandex HEAD) replaced by the device clock (classes4).
 """
 import os, re, shutil, sys
 
@@ -135,6 +138,84 @@ def film_styles(root):
     edit(editor, [('const/16 v2, 0x302', f'const/16 v2, {hex(LAST)}')])
 
 
+PPS = 'Lcom/codex/fullm9/PhotoProcessingService;'
+DRAINED = f"""    :cond_7e
+    if-nez v5, :keep_notice
+
+    iget v2, p0, {PPS}->failureCount:I
+
+    if-nez v2, :keep_notice
+
+    const-wide/16 v2, 0xfa0
+
+    invoke-virtual {{p1, v2, v3}}, Landroid/app/Notification$Builder;->setTimeoutAfter(J)Landroid/app/Notification$Builder;
+
+    invoke-virtual {{p1, v1}}, Landroid/app/Notification$Builder;->setAutoCancel(Z)Landroid/app/Notification$Builder;
+
+    const/4 v2, 0x0
+
+    invoke-virtual {{p1, v2, v2, v2}}, Landroid/app/Notification$Builder;->setProgress(IIZ)Landroid/app/Notification$Builder;
+
+    :keep_notice
+"""
+
+
+def drained_notice(root):
+    # The final "rendering done" notice (ongoing=false) used to stay forever at 100%: drop the
+    # progress bar and let it time out after 4 s. Failure notices (failureCount > 0) still stay.
+    path = os.path.join(root, 'classes17/com/codex/fullm9/PhotoProcessingService.smali')
+    method(path, 'private declared-synchronized notification(Z)Landroid/app/Notification;', [
+        ('    .registers 7\n', '    .registers 8\n\n    move v5, p1\n'),
+        ('    :cond_7e\n', DRAINED)])
+
+
+def onetrack_off(root):
+    # OneTrack's own kill switch; every track/upload path checks it.
+    path = os.path.join(root, 'classes2/com/xiaomi/onetrack/OneTrack.smali')
+    src = open(path, encoding='utf-8').read()
+    m = re.search(r'\.method public static isDisable\(\)Z.*?\.end method', src, re.S)
+    if not m:
+        sys.exit('OneTrack.isDisable not found')
+    body = '.method public static isDisable()Z\n    .registers 1\n\n    const/4 v0, 0x1\n\n    return v0\n.end method'
+    open(path, 'w', encoding='utf-8', newline='\n').write(src[:m.start()] + body + src[m.end():])
+
+
+def cloudconfig_off(classes3):
+    # Camera CloudConfig network request (DataRequester.f): answer "no remote rules" (Kotlin EmptyList),
+    # the same result as a fresh install with an empty cache. Local defaults keep applying.
+    path = os.path.join(classes3, 'Xe/e.smali')
+    method(path, 'public final f(Ljava/lang/String;Z)Ljava/util/List;', [
+        ('    .end annotation\n\n    move-object/from16 v1, p0\n',
+         '    .end annotation\n\n    sget-object v0, Lhv/v;->a:Lhv/v;\n\n    return-object v0\n\n'
+         '    move-object/from16 v1, p0\n')])
+
+
+NET_TIME = """.method public final c(Lmv/c;)Ljava/io/Serializable;
+    .registers 4
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v0
+
+    new-instance v2, Ljava/lang/Long;
+
+    invoke-direct {v2, v0, v1}, Ljava/lang/Long;-><init>(J)V
+
+    return-object v2
+.end method"""
+
+
+def net_time_off(root):
+    # WatermarkRepository (Hh.v) HEADs www.baidu.com / google / yandex on every launch only to read the
+    # Date header, falling back to the device clock on failure. Always take that fallback.
+    path = os.path.join(root, 'classes4/Hh/v.smali')
+    src = open(path, encoding='utf-8').read()
+    m = re.search(r'\.method public final c\(Lmv/c;\)Ljava/io/Serializable;.*?\.end method', src, re.S)
+    if not m:
+        sys.exit('Hh.v.c not found')
+    open(path, 'w', encoding='utf-8', newline='\n').write(src[:m.start()] + NET_TIME + src[m.end():])
+
+
 def main(root, classes3, java_smali):
     for rel, dex in (('com/codex/filmlut', 'classes24'), ('com/codex/rearlens/MethodCache.smali', 'classes25')):
         src, dst = os.path.join(java_smali, rel), os.path.join(root, dex, rel)
@@ -145,7 +226,11 @@ def main(root, classes3, java_smali):
     rearlens(root)
     mode_entry(classes3)
     film_styles(root)
-    print(f'fixes: method cache, mode entry, {COUNT} film LUT styles')
+    drained_notice(root)
+    onetrack_off(root)
+    cloudconfig_off(classes3)
+    net_time_off(root)
+    print(f'fixes: method cache, mode entry, {COUNT} film LUT styles, drained notice, telemetry off')
 
 
 if __name__ == '__main__':
