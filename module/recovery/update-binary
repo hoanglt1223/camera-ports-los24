@@ -1,0 +1,109 @@
+#!/sbin/sh
+# Recovery installer / restorer (LineageOS recovery, ext4 system/vendor).
+# MODE=install or MODE=restore is written into payload/mode by tools/build-zips.py.
+OUTFD="/proc/self/fd/$2"
+ZIP="$3"
+TMP=/tmp/camera-port
+PAYLOAD="$TMP/payload"
+PLAN="$TMP/plan.txt"
+BACKUP=/data/media/0/camera-port-backup
+
+say() { echo "ui_print $1" > "$OUTFD"; echo "ui_print" > "$OUTFD"; }
+die() { say "! $1"; say "! Aborted."; cleanup; exit 1; }
+
+SYS=""; VEN=""
+mount_rw() {
+  for p in /mnt/system /system_root /system; do
+    mount "$p" 2>/dev/null
+    mount -o rw,remount "$p" 2>/dev/null
+    if [ -f "$p/system/build.prop" ]; then SYS="$p/system"; break; fi
+    if [ -f "$p/build.prop" ]; then SYS="$p"; break; fi
+  done
+  for p in /vendor /mnt/vendor; do
+    mount "$p" 2>/dev/null
+    mount -o rw,remount "$p" 2>/dev/null
+    if [ -f "$p/build.prop" ]; then VEN="$p"; break; fi
+  done
+  [ -n "$SYS" ] || die "Cannot mount system."
+  [ -n "$VEN" ] || die "Cannot mount vendor."
+  touch "$SYS/.camport_rw" 2>/dev/null && rm -f "$SYS/.camport_rw" || die "system is read-only (shared_blocks ext4?). See README."
+  touch "$VEN/.camport_rw" 2>/dev/null && rm -f "$VEN/.camport_rw" || die "vendor is read-only (shared_blocks ext4?). See README."
+  mount /data 2>/dev/null
+}
+cleanup() { umount "$VEN" 2>/dev/null; umount "${SYS%/system}" 2>/dev/null; rm -rf "$TMP"; }
+
+target_of() {
+  case "$1" in
+    system/*) echo "$SYS/${1#system/}" ;;
+    vendor/*) echo "$VEN/${1#vendor/}" ;;
+  esac
+}
+
+# Writes into a file the backup copy location for one relpath.
+backup_of() {
+  if [ -w /data/media/0 ] || mkdir -p "$BACKUP" 2>/dev/null; then
+    echo "$BACKUP/$1"
+  else
+    echo "$(target_of "$1").camera-port.orig"
+  fi
+}
+
+# Copies src over dst, keeping the original file's SELinux context.
+put_file() {
+  src="$1"; dst="$2"; fallback="$3"
+  ctx="$(ls -Z "$dst" 2>/dev/null | awk '{print $1}')"
+  case "$ctx" in u:object_r:*) ;; *) ctx="$fallback" ;; esac
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$src" "$dst" || return 1
+  chown 0:0 "$dst"; chmod 0644 "$dst"
+  chcon "$ctx" "$dst"
+}
+
+rm -rf "$TMP"; mkdir -p "$TMP"
+unzip -o "$ZIP" 'payload/*' -d "$TMP" >/dev/null || die "Cannot extract payload."
+. "$PAYLOAD/common.sh"
+MODE="$(cat "$PAYLOAD/mode")"
+
+say "MIUI Camera port blobs, LineageOS 24 ($DEVICE): $MODE"
+check_device
+mount_rw
+
+if [ "$MODE" = restore ]; then
+  n=0
+  while IFS='|' read -r rel kind stock want ctx; do
+    [ -z "$rel" ] && continue
+    dst="$(target_of "$rel")"
+    for b in "$BACKUP/$rel" "$dst.camera-port.orig"; do
+      if [ -f "$b" ]; then
+        put_file "$b" "$dst" "$ctx" || die "restore failed: $rel"
+        say "  < $rel"
+        rm -f "$dst.camera-port.orig"
+        n=$((n + 1)); break
+      fi
+    done
+  done < "$PAYLOAD/files.txt"
+  say "Restored $n file(s). Backups in $BACKUP were kept."
+  cleanup; exit 0
+fi
+
+: > "$PLAN"
+plan_files
+while IFS='|' read -r action rel; do
+  [ "$action" = install ] || continue
+  line="$(entry_of "$rel")"
+  ctx="${line##*|}"
+  dst="$(target_of "$rel")"
+  if [ -f "$dst" ]; then
+    b="$(backup_of "$rel")"
+    if [ ! -f "$b" ]; then
+      mkdir -p "$(dirname "$b")"
+      cp -f "$dst" "$b" || die "backup failed: $rel"
+    fi
+    say "  backup -> $b"
+  fi
+  put_file "$PAYLOAD/files/$rel" "$dst" "$ctx" || die "copy failed: $rel"
+  [ "$(sha_of "$dst")" = "$(echo "$line" | cut -d'|' -f4)" ] || die "verify failed: $rel"
+done < "$PLAN"
+say "Done. Reboot system."
+cleanup
+exit 0

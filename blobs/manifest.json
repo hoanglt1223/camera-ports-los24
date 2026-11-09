@@ -1,0 +1,59 @@
+{
+  "device": "gauguin",
+  "files": [
+    {
+      "path": "system/lib64/libcamera_algoup_jni.xiaomi.so",
+      "kind": "patched",
+      "stock_sha256": "d8a3b6b93a83a82e2be5fb5f4f864ce64a7a213a49b7ba52f607d6ba82bfdcaa",
+      "sha256": "3dda8c37bc34ab57b6b56067c7ab142c83dc31c0372153e8fe25cbb0e9cca384",
+      "context": "u:object_r:system_lib_file:s0",
+      "patcher": "patches/blobs/patch_libcamera_algoup.py",
+      "fixes": "MIUI Camera app SIGSEGV on preview (old IProducerListener ABI, null listener)"
+    },
+    {
+      "path": "system/lib64/libcamera_mianode_jni.xiaomi.so",
+      "kind": "patched",
+      "stock_sha256": "1feb745b06770c6b38a301bb3b37fd90ba3785a092beb5eaf1f5fec3b3a8cb9a",
+      "sha256": "1f89d499fbf9304142ee65be2a3fe5f1d4572210356b2773f43a60e551a30b74",
+      "context": "u:object_r:system_lib_file:s0",
+      "patcher": "patches/blobs/patch_libcamera_mianode.py",
+      "fixes": "same IProducerListener bug as algoup (latent, patched preventively)"
+    },
+    {
+      "path": "vendor/lib64/libcamera_dirty.so",
+      "kind": "patched",
+      "stock_sha256": "e9bbad41ca6f8a27ea4b01f9c53e849e8ad323e6c718506cf38e673e04b01959",
+      "sha256": "cb4d11cddcf23556950bb30a206d7f657b6b2b2a62f68fc8a5cba017a5e5e0bc",
+      "context": "u:object_r:vendor_file:s0",
+      "patcher": "patches/blobs/patch_libcamera_dirty.py",
+      "fixes": "camera provider SIGSEGV (dirty-lens NN over-read), Forward() -> ret"
+    },
+    {
+      "path": "vendor/lib64/camera/components/com.vidhance.node.eis.so",
+      "kind": "patched",
+      "stock_sha256": "2a9d6395292681bd73b20f84348cf2a17435ac4caa925c26dea719123be29b49",
+      "sha256": "a3dc87d9575bd120512225b67b0c4756c8fd2fa98ee998d085f171881d1af47f",
+      "context": "u:object_r:vendor_file:s0",
+      "patcher": "patches/blobs/patch-vidhance-node-nv21-copy.py + patches/blobs/patch-vidhance-node-graphicbuffer-size.py",
+      "fixes": "video EIS heap overflow (GraphicBuffer 0x100 -> 0x1000) and NV12/NV21 colour swap"
+    },
+    {
+      "path": "vendor/lib64/hw/gralloc.lito.so",
+      "kind": "stock",
+      "stock_sha256": null,
+      "sha256": "596323b879026275e1852a371c378920f7636b1c07f725fe1516dcef92f0cf5a",
+      "context": "u:object_r:same_process_hal_file:s0",
+      "patcher": null,
+      "fixes": "stock MIUI 14 gralloc required by the MIUI camera pipeline (replaced if different, original backed up)"
+    },
+    {
+      "path": "vendor/lib/hw/gralloc.lito.so",
+      "kind": "stock",
+      "stock_sha256": null,
+      "sha256": "a0720637cab2483e79b67a94271e16188228e1b6910d6f95318e89d8345b7954",
+      "context": "u:object_r:same_process_hal_file:s0",
+      "patcher": null,
+      "fixes": "32-bit counterpart of the above"
+    }
+  ]
+}

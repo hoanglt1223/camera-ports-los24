@@ -1,0 +1,6 @@
+id=framework_legacy_camera_ctors_gauguin
+name=Legacy camera2 constructors (framework.jar, exact LineageOS 24 gauguin build only)
+version=v1.0
+versionCode=1
+author=Thanh Hoang
+description=framework.jar with StreamConfigurationMap 15-arg and CaptureResultExtras legacy constructors for MIUI Camera. Refuses to install on any other build fingerprint.

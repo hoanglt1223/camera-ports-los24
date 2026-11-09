@@ -1,0 +1,9 @@
+release-assets/
+*.apk
+*.idsig
+*.jks
+*.keystore
+keys/
+work/
+__pycache__/
+leica/scripts/AuthorNotice.java

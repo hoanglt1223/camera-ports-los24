@@ -1,0 +1,6 @@
+id=miuicamera_los24_gauguin
+name=MIUI Camera port blobs (LineageOS 24, gauguin)
+version=v1.0
+versionCode=1
+author=Thanh Hoang
+description=Patched camera blobs (provider crash, app crash, video EIS) and stock gralloc for MIUI Camera 4.5 on LineageOS 24. Checks SHA-256 of every stock blob before installing.

@@ -1,0 +1,20 @@
+{
+  "id": "xiaomi/xiaomi-mi-10t-lite-gauguin",
+  "brand": "xiaomi",
+  "name": "Mi 10T Lite 5G / Redmi Note 9 Pro 5G (gauguin)",
+  "year": 2020,
+  "source": "local measurement on gauguin (dumpsys media.camera)",
+  "sources": [],
+  "codes": ["gauguin", "gauguinpro", "M2007J17G", "M2007J17C", "M2007J17I"],
+  "lenses": [
+    {"role": "ultra", "mm": 0, "ratio": 0, "ratio_origin": "runtime_metadata_required", "focal_status": "runtime_metadata_required"},
+    {"role": "main", "mm": 0, "ratio": 1, "ratio_origin": "derived", "focal_status": "runtime_metadata_required"},
+    {"role": "tele", "mm": 0, "ratio": 2, "ratio_origin": "digital_crop_of_main", "focal_status": "no_optical_tele"}
+  ],
+  "note": "Ultrawide 8MP is exposed twice (id 3 and 6); 2MP macro and depth are auxiliaries. 2x is a crop of the 64MP main.",
+  "audit_date": "2026-11-09",
+  "aliases": ["Mi 10T Lite", "Redmi Note 9 Pro 5G", "Mi 10i"],
+  "auxiliary_lenses": [{"role": "macro"}, {"role": "depth"}],
+  "binding_policy": "runtime_sensor_and_session_validation",
+  "ambiguous_codes": []
+}

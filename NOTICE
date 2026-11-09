@@ -1,0 +1,19 @@
+Third-party binaries
+
+The files under blobs/ and the binaries attached to GitHub Releases (Magisk/recovery zips,
+framework.jar, the Leica port APK) are not covered by the MIT licence of this repository.
+
+- libcamera_algoup_jni.xiaomi.so, libcamera_mianode_jni.xiaomi.so, libcamera_dirty.so and
+  MIUI Camera are the property of Xiaomi Inc.
+- gralloc.lito.so and other Qualcomm platform components are the property of
+  Qualcomm Technologies, Inc.
+- com.vidhance.node.eis.so (Vidhance) is the property of Imint Image Intelligence AB.
+- The Leica camera port is the work of its original porter and builds on Xiaomi software;
+  Leica is a trademark of Leica Camera AG.
+- framework.jar is built from the Android Open Source Project / LineageOS (Apache 2.0)
+  with the patches in patches/framework/.
+
+The binaries are patched only as far as needed to run on LineageOS 24 and are provided
+solely for interoperability, for owners of the device the files originally shipped on.
+No affiliation with or endorsement by any of the owners is implied. Owners who want a file
+removed can open an issue.
