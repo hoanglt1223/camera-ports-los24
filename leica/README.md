@@ -44,3 +44,32 @@ The script signs with a locally generated test key (`keys/`, created on first ru
 the original app must be uninstalled first. The tool that translates the encrypted author
 dialog is not published (it contains the app's own key); without it the build skips that
 dialog and keeps its original text.
+
+## iQOO Neo 11 and iQOO 13 (Snapdragon 8 Elite, SM8750)
+
+`-Target iqooneo11` / `-Target iqoo13` build `leica-iqooneo11-en.apk` / `leica-iqoo13-en.apk`
+(release assets) from the same script. They get every gauguin change above except `-Slim`
+(all models and Hexagon `dsp/` files are kept), plus:
+
+| Change | How |
+|---|---|
+| iQOO Neo 11 profile `vivo/iqooneo11`, code V2520A: ultrawide + main, no tele | `iqooneo11-profile.json` |
+| iQOO 13 profile `vivo/iqoo13`, codes V2408A / V2408 / I2401: ultrawide + main + 2x optical tele. The schema has no crop stop on the tele, so there is no 4x/5x chip | `iqoo13-profile.json` |
+| Style nets on the HTP V79 DSP: the leicaapp and model120 style runners now use `libzxyletrans_runner.so` | `iqoo_patch.py` |
+| `assets/leica-v4` context binaries replaced with the V79 copies from `lm_leica-v4`, plus `dsp/libQnnHtpV79Skel.so` | `build-leica-gauguin.ps1` |
+
+Why: the APK carries one complete QNN 2.33.0 HTP V79 kit (the `zx` runner and
+`libzxalgo_styletrans` / `libzxnHtp` / `libzxnSystem`, `libzxnHtpV81Stub.so`, which is
+really the V79 stub with SONAME `libQnnHtpV79Stub.so`, the V79 skel and V79 context
+binaries). The stock leicaapp chain is a QNN 2.33.104 V81 kit (8 Elite Gen 5 only). The
+`leica-v4` and `lm_leica-v4` contexts differ only in the HTP arch byte (0x51 vs 0x4F).
+The legend85 experiment is V81-only (`m9-v81.minn`) and stays hidden. No Qualcomm SDK
+files are needed. If the DSP session fails, the runner exits non-zero and the app falls
+back to CPU / ONNX Runtime / LUT, as on gauguin.
+
+Built and statically checked only, not tested on either phone. All variants share the
+package name, so uninstall the other build first.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File leica\scripts\build-leica-gauguin.ps1 -Apk <original-leica-port.apk> -Target iqoo13
+```

@@ -1,6 +1,6 @@
 """Apply the gauguin patches to a baksmali tree and the profile catalog.
 
-  patch_port.py <smali_root> <device-profiles.json in> <out json> <resources.arsc in> <out arsc>
+  patch_port.py <smali_root> <device-profiles.json in> <out json> <resources.arsc in> <out arsc> [profile.json]
 """
 import json, os, sys
 
@@ -103,7 +103,7 @@ def patch(path, old, new):
     open(path, 'w', encoding='utf-8', newline='\n').write(src.replace(old, new))
 
 
-def main(root, json_in, json_out, arsc_in, arsc_out):
+def main(root, json_in, json_out, arsc_in, arsc_out, profile='gauguin-profile.json'):
     arsc_strings.apply_cmd(arsc_in, os.path.join(HERE, 'arsc-translations-en.json'), arsc_out)
     patch(os.path.join(root, 'classes30/com/codex/modelmatch/Profiles.smali'), AUTO_DETECT_OLD, AUTO_DETECT_NEW)
     patch(os.path.join(root, 'classes11/com/codex/leicaapp/LeicaV43Ui.smali'), EXPERIMENT_OLD, EXPERIMENT_NEW)
@@ -111,7 +111,7 @@ def main(root, json_in, json_out, arsc_in, arsc_out):
     smali_strings.apply(root, os.path.join(HERE, 'translations-en.json'))
 
     catalog = json.load(open(json_in, encoding='utf-8'))
-    entry = json.load(open(os.path.join(HERE, 'gauguin-profile.json'), encoding='utf-8'))
+    entry = json.load(open(os.path.join(HERE, profile), encoding='utf-8'))
     translate_profiles(catalog)
     catalog['profiles'] = [p for p in catalog['profiles'] if p['id'] != entry['id']] + [entry]
     with open(json_out, 'w', encoding='utf-8', newline='\n') as fh:

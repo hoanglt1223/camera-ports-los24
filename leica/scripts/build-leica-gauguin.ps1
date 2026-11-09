@@ -4,9 +4,13 @@
 # -Slim: out\leica-gauguin-en-slim.apk without assets gauguin (SM7225, no HTP) cannot use: the hidden
 # legend85 QNN/HTP experiment, the Hexagon HTP V79/V81 dsp/ skeletons, the third leica-v4 model copy
 # (donor120 reads lm_leica-v4 instead, see slim_patch.py) and resource locales other than en/vi/zh-CN.
+# -Target iqooneo11 | iqoo13: out\leica-<target>-en.apk for iQOO Neo 11 / iQOO 13 (SM8750, HTP V79): <target>-profile.json, all
+# model and dsp assets kept, style runners and assets/leica-v4 switched to the in-APK HTP V79 kit (iqoo_patch.py).
 # Needs: java 17 (javac), python 3, Android SDK platform android.jar + build-tools (zipalign, apksigner, aapt2, d8), Pillow, tools\bin\{smali,baksmali}.jar.
-param([string]$Apk, [switch]$Slim)
+param([string]$Apk, [switch]$Slim, [ValidateSet('gauguin', 'iqooneo11', 'iqoo13')][string]$Target = 'gauguin')
 $ErrorActionPreference = 'Stop'
+$iqoo = $Target -ne 'gauguin'
+if ($iqoo -and $Slim) { throw "-Slim drops the HTP assets $Target needs" }
 $root = Split-Path $PSScriptRoot -Parent
 $orig = if ($Apk) { $Apk } else { Join-Path $root 'leica-installed.apk' }  # original Leica Port 8.x APK
 $bin = Join-Path $root 'tools\bin'
@@ -31,7 +35,8 @@ if ($notice) {
     Run java @('-jar', "$bin\baksmali.jar", 'd', "$work\notice.dex", '-o', "$work\smali\notice")
 }
 foreach ($i in $dexes) { Run java @('-jar', "$bin\baksmali.jar", 'd', "$work\in\classes$i.dex", '-o', "$work\smali\classes$i") }
-Run python @('-I', "$PSScriptRoot\patch_port.py", "$work\smali", "$work\in\assets\device-profiles.json", "$work\device-profiles.json", "$work\in\resources.arsc", "$work\resources.arsc")
+Run python @('-I', "$PSScriptRoot\patch_port.py", "$work\smali", "$work\in\assets\device-profiles.json", "$work\device-profiles.json", "$work\in\resources.arsc", "$work\resources.arsc", "$Target-profile.json")
+if ($iqoo) { Run python @('-I', "$PSScriptRoot\iqoo_patch.py", "$work\smali") }
 if ($Slim) { Run python @('-I', "$PSScriptRoot\slim_patch.py", "$work\smali") }
 
 # Fixes: lens-switch lock (MethodCache), Leica Styles entry after relaunch (classes3), film LUT styles,
@@ -70,6 +75,13 @@ $repl += Get-ChildItem -Recurse "$work\film" -File | ForEach-Object { "--add=ass
 if ($Slim) {
     $repl += 'assets/legend85-experiment/', 'assets/donor120/leica-v4/', 'assets/leica-v4/dsp/', 'assets/lm_leica-v4/dsp/' | ForEach-Object { "--drop=$_" }
 }
+if ($iqoo) {
+    # assets/leica-v4 differs from lm_leica-v4 only in the HTP arch byte of each context (V81 vs V79).
+    $v79 = 'lm_leica-v4/styletrans_low.minn', 'lm_leica-v4/styletrans_high.minn', 'lm_leica-v4/styletrans_colorfix.minn', 'lm_leica-v4/dsp/libQnnHtpV79Skel.so'
+    Run python (@('-I', '-c', "import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);[z.extract('assets/'+n,sys.argv[2]) for n in sys.argv[3:]]", $orig, "$work\v79") + $v79)
+    $repl += 'low', 'high', 'colorfix' | ForEach-Object { "assets/leica-v4/styletrans_$_.minn=$work\v79\assets\lm_leica-v4\styletrans_$_.minn" }
+    $repl += "--add=assets/leica-v4/dsp/libQnnHtpV79Skel.so=$work\v79\assets\lm_leica-v4\dsp\libQnnHtpV79Skel.so"
+}
 Run python (@('-I', "$PSScriptRoot\repack_apk.py", $orig, "$work\unsigned.apk") + $repl)
 Run "$bt\zipalign.exe" @('-f', '-p', '4', "$work\unsigned.apk", "$work\aligned.apk")
 
@@ -81,7 +93,7 @@ if (-not (Test-Path $ks)) {
     Run keytool @('-genkeypair', '-keystore', $ks, '-alias', 'leica', '-keyalg', 'RSA', '-keysize', '3072', '-validity', '10000',
         '-dname', 'CN=gauguin test', '-storepass:file', $passFile, '-keypass:file', $passFile)
 }
-$out = Join-Path $outDir $(if ($Slim) { 'leica-gauguin-en-slim.apk' } else { 'leica-gauguin-en.apk' })
+$out = Join-Path $outDir $(if ($iqoo) { "leica-$Target-en.apk" } elseif ($Slim) { 'leica-gauguin-en-slim.apk' } else { 'leica-gauguin-en.apk' })
 Run "$bt\apksigner.bat" @('sign', '--ks', $ks, '--ks-key-alias', 'leica', '--ks-pass', "file:$passFile",
     '--v1-signing-enabled', 'true', '--v2-signing-enabled', 'true', '--v3-signing-enabled', 'true', '--out', $out, "$work\aligned.apk")
 Run "$bt\apksigner.bat" @('verify', $out)
