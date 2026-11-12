@@ -109,7 +109,8 @@ Details, disassembly and verification: [docs/binary-patches.md](docs/binary-patc
 
 Leica port changes (gauguin lens profile with auto-detect, zoom chips 0.6 / 1 / 2, English
 porter UI, HTP-only experiment screen hidden; M9 styles already run on CPU): see
-[leica/README.md](leica/README.md).
+[leica/README.md](leica/README.md). The Leica port now has its own repo with builds for more
+phones and a support matrix: [hoanglt1223/leica-port](https://github.com/hoanglt1223/leica-port).
 
 ## Generic Android: what carries over to other devices
 

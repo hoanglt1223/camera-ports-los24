@@ -82,7 +82,8 @@ Chi tiết (tiếng Anh): [docs/binary-patches.md](docs/binary-patches.md). Tóm
 - **com.vidhance.node.eis.so**: cấp 0x100 byte cho `GraphicBuffer` trong khi bản A17 cần
   ~0xd30, tràn heap khi quay có EIS. Tăng lên 0x1000. Thêm vá đổi kênh màu NV12/NV21.
 - **Leica port**: profile gauguin tự nhận, chip zoom 0.6/1/2, giao diện tiếng Anh, ẩn màn
-  thử nghiệm chỉ chạy trên HTP. Xem [leica/README.md](leica/README.md).
+  thử nghiệm chỉ chạy trên HTP. Xem [leica/README.md](leica/README.md). Repo riêng, nhiều máy hơn:
+  [hoanglt1223/leica-port](https://github.com/hoanglt1223/leica-port).
 
 ## Phần nào dùng được cho máy khác
 
